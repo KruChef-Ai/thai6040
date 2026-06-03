@@ -54,7 +54,7 @@
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden">
 
-    <!-- Header (อัปเดต v1.5.3) -->
+    <!-- Header (อัปเดต v1.5.5) -->
     <header class="bg-thai-blue text-white pt-5 pb-4 px-4 shadow-lg shrink-0 relative overflow-hidden">
         <div class="absolute top-0 right-0 w-48 h-48 bg-white opacity-5 rounded-full -mr-10 -mt-10 blur-3xl pointer-events-none"></div>
         
@@ -70,7 +70,7 @@
                 <div>
                     <h1 class="text-lg font-bold leading-tight tracking-wide flex items-center gap-2">
                         ไทยช่วยไทย 60/40
-                        <span class="bg-thai-red text-white text-[9px] px-2 py-0.5 rounded-full font-medium tracking-wider shadow-sm">v1.5.3</span>
+                        <span class="bg-thai-red text-white text-[9px] px-2 py-0.5 rounded-full font-medium tracking-wider shadow-sm">v1.5.5</span>
                     </h1>
                     <p class="text-[11px] text-blue-200 mt-0.5 font-light tracking-wide">ตรวจสอบสิทธิ์ • ค้นหาร้านเปิดจริง</p>
                 </div>
@@ -162,7 +162,7 @@
                     <i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i>
                     <span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span>
                     <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
-                    <span>v1.5.3</span>
+                    <span>v1.5.5</span>
                 </div>
             </div>
         </div>
@@ -548,7 +548,6 @@
             } else { if(callback) callback(false); }
         }
 
-        // ================= เพิ่มฟังก์ชันนี้กลับมาแล้วครับ =================
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3; // รัศมีโลกในหน่วยเมตร
             const rad = Math.PI / 180;
@@ -561,7 +560,6 @@
             return R * c; 
         }
 
-        // ================= v1.5.3 Debug Mode =================
         function fetchMerchants() {
             const list = document.getElementById('shop-list');
             
@@ -635,11 +633,14 @@
                     ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md text-[10px] font-bold border border-emerald-200">🟢 เปิดบริการ</span>' 
                     : '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-200">🔴 ปิดทำการ</span>';
                 
+                // อัปเดต v1.5.5 Logic: เปลี่ยนป้ายสถานะตามยอดกด Like / Report
                 let trustBadge = '';
                 if (shop.reportCount && shop.reportCount > 0) {
-                    trustBadge = `<span class="bg-red-50 text-thai-red px-2 py-1 rounded-lg text-[10px] font-bold border border-red-200 flex items-center gap-1 w-full"><i data-lucide="shield-alert" class="w-3.5 h-3.5 shrink-0"></i> ⚠️ ระวัง: ร้านนี้มีประวัติบวกราคา/เก็บค่าธรรมเนียม (${shop.reportCount} ครั้ง)</span>`;
+                    trustBadge = `<span class="bg-red-50 text-thai-red px-2 py-1 rounded-lg text-[10px] font-bold border border-red-200 flex items-center gap-1 w-full"><i data-lucide="shield-alert" class="w-3.5 h-3.5 shrink-0"></i> ⚠️ ระวัง: มีประวัติบวกราคา (${shop.reportCount} ครั้ง)</span>`;
+                } else if (shop.verifyCount && shop.verifyCount > 0) {
+                    trustBadge = `<span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg text-[10px] font-bold border border-emerald-200 flex items-center gap-1 w-full"><i data-lucide="thumbs-up" class="w-3.5 h-3.5 shrink-0"></i> 👍 ยืนยันแล้ว: ราคาเป็นธรรม (${shop.verifyCount} เสียง)</span>`;
                 } else {
-                    trustBadge = `<span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg text-[10px] font-bold border border-emerald-200 flex items-center gap-1 w-full"><i data-lucide="shield-check" class="w-3.5 h-3.5 shrink-0"></i> 🛡️ ร้านนี้ปกติ / ราคาเป็นธรรม</span>`;
+                    trustBadge = `<span class="bg-gray-50 text-gray-600 px-2 py-1 rounded-lg text-[10px] font-bold border border-gray-200 flex items-center gap-1 w-full"><i data-lucide="shield-check" class="w-3.5 h-3.5 shrink-0"></i> 🛡️ ร้านนี้ปกติ / ราคาเป็นธรรม</span>`;
                 }
 
                 let distText = '';
@@ -648,7 +649,6 @@
                     distText = dist < 1000 ? `ห่าง ${dist.toFixed(0)} ม.` : `ห่าง ${(dist/1000).toFixed(1)} กม.`;
                 }
 
-                let streetViewUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${shop.lat},${shop.lng}`;
                 let navUrl = `https://www.google.com/maps/dir/?api=1&destination=${shop.lat},${shop.lng}`;
 
                 const card = document.createElement('div');
@@ -679,8 +679,12 @@
                         <div class="flex gap-2">
                             <a href="${navUrl}" target="_blank" class="flex-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 py-2 rounded-xl text-xs font-bold transition flex justify-center items-center gap-1.5"><i data-lucide="navigation" class="w-3.5 h-3.5"></i> นำทาง</a>
                             <button onclick="updateShopStatus('${shop.id}', ${shop.lat}, ${shop.lng})" class="flex-1 bg-white text-thai-blue hover:bg-blue-50 border border-blue-200 py-2 rounded-xl text-xs font-bold transition flex justify-center items-center gap-1.5"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> สถานะ</button>
-                            <button onclick="reportShop('${shop.id}', ${shop.lat}, ${shop.lng})" class="w-10 bg-red-50 text-thai-red hover:bg-red-100 border border-red-200 rounded-xl flex justify-center items-center transition" title="รายงานบวกราคาเพิ่ม"><i data-lucide="flag" class="w-4 h-4"></i></button>
-                            <a href="${streetViewUrl}" target="_blank" class="w-10 bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200 rounded-xl flex justify-center items-center transition" title="สตรีทวิว"><i data-lucide="street-view" class="w-4 h-4 text-thai-red"></i></a>
+                            
+                            <!-- ปุ่มแจ้งธงแดง (ลบ Street View ออก แล้วสลับที่) -->
+                            <button onclick="reportShop('${shop.id}', ${shop.lat}, ${shop.lng})" class="w-10 bg-red-50 text-thai-red hover:bg-red-100 border border-red-200 rounded-xl flex justify-center items-center transition" title="รายงาน: บวกราคาเพิ่ม/เอาเปรียบ"><i data-lucide="flag" class="w-4 h-4"></i></button>
+                            
+                            <!-- ปุ่มยืนยันร้านดี (Thumbs Up) -->
+                            <button onclick="verifyShop('${shop.id}', ${shop.lat}, ${shop.lng})" class="w-10 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 rounded-xl flex justify-center items-center transition" title="สนับสนุน: ร้านดี ราคาเป็นธรรม"><i data-lucide="thumbs-up" class="w-4 h-4"></i></button>
                         </div>
                     </div>
                 `;
@@ -689,9 +693,32 @@
 
             const footer = document.createElement('div');
             footer.className = "mt-6 text-center pb-2";
-            footer.innerHTML = `<div class="inline-flex items-center justify-center gap-2 text-gray-500 text-[11px] font-medium bg-white px-4 py-2 rounded-full border shadow-sm"><i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i><span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span><span class="w-1 h-1 bg-gray-300 rounded-full"></span><span>v1.5.3</span></div>`;
+            footer.innerHTML = `<div class="inline-flex items-center justify-center gap-2 text-gray-500 text-[11px] font-medium bg-white px-4 py-2 rounded-full border shadow-sm"><i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i><span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span><span class="w-1 h-1 bg-gray-300 rounded-full"></span><span>v1.5.5</span></div>`;
             list.appendChild(footer);
             lucide.createIcons(); 
+        }
+
+        // เพิ่มฟังก์ชัน ยืนยันร้านดี (Thumbs up)
+        function verifyShop(shopId, shopLat, shopLng) {
+            if(!state.userLat) { showToast("กำลังดึงพิกัด GPS ของคุณ...", "error"); getUserLocation(); return; }
+            const dist = calculateDistance(state.userLat, state.userLng, shopLat, shopLng);
+            if (dist > VALID_RADIUS_METERS) {
+                showCustomAlert(`คุณอยู่ห่างจากร้าน <b class="text-thai-red">${dist.toFixed(0)} เมตร</b><br><span class="text-xs text-gray-500 mt-2 block">ต้องอยู่ในรัศมี ${VALID_RADIUS_METERS} เมตร เพื่อยืนยันข้อมูลร้านค้า (ป้องกันการแจ้งเท็จ)</span>`, true);
+                return;
+            }
+            const isConfirmed = confirm("คุณต้องการยืนยันว่า 'ร้านนี้ราคาเป็นธรรม ไม่เอาเปรียบ' ใช่หรือไม่?");
+            if (!isConfirmed) return;
+
+            showToast("กำลังส่งข้อมูลสนับสนุนร้าน...");
+            fetch(GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'verifyMerchant', data: { shopId: shopId, lat: state.userLat, lng: state.userLng } })
+            }).then(r => r.json()).then(res => {
+                if(res.status === 'success') {
+                    showCustomAlert("ส่งข้อมูลสำเร็จ!<br><span class='text-xs text-gray-500 mt-1 block'>ขอบคุณที่ช่วยสนับสนุนร้านค้าที่ดีครับ</span>");
+                    fetchMerchants(); 
+                }
+            }).catch(e => showToast("เกิดข้อผิดพลาด", "error"));
         }
 
         function reportShop(shopId, shopLat, shopLng) {
