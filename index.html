@@ -54,7 +54,7 @@
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden">
 
-    <!-- Header (อัปเดต v1.5.2) -->
+    <!-- Header (อัปเดต v1.5.3) -->
     <header class="bg-thai-blue text-white pt-5 pb-4 px-4 shadow-lg shrink-0 relative overflow-hidden">
         <div class="absolute top-0 right-0 w-48 h-48 bg-white opacity-5 rounded-full -mr-10 -mt-10 blur-3xl pointer-events-none"></div>
         
@@ -70,7 +70,7 @@
                 <div>
                     <h1 class="text-lg font-bold leading-tight tracking-wide flex items-center gap-2">
                         ไทยช่วยไทย 60/40
-                        <span class="bg-thai-red text-white text-[9px] px-2 py-0.5 rounded-full font-medium tracking-wider shadow-sm">v1.5.2</span>
+                        <span class="bg-thai-red text-white text-[9px] px-2 py-0.5 rounded-full font-medium tracking-wider shadow-sm">v1.5.3</span>
                     </h1>
                     <p class="text-[11px] text-blue-200 mt-0.5 font-light tracking-wide">ตรวจสอบสิทธิ์ • ค้นหาร้านเปิดจริง</p>
                 </div>
@@ -162,7 +162,7 @@
                     <i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i>
                     <span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span>
                     <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
-                    <span>v1.5.2</span>
+                    <span>v1.5.3</span>
                 </div>
             </div>
         </div>
@@ -289,7 +289,7 @@
     <!-- Script Configuration -->
     <script>
         // ==========================================
-        // 🔴 ครูเชฟ: ก๊อปปี้ Web App URL ตัวล่าสุด มาวางในเครื่องหมายคำพูดด้านล่างนี้ครับ 🔴
+        // URL Web App ของครูเชฟ
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzhfckUvcJ70NAfocOAyaAiYzEK92eJ2D4KRvu3DWapIXweV0NXs0eZFhkwVudzCCyi-Q/exec"; 
         // ==========================================
 
@@ -548,11 +548,23 @@
             } else { if(callback) callback(false); }
         }
 
-        // ================= v1.5.2 Debug Mode =================
+        // ================= เพิ่มฟังก์ชันนี้กลับมาแล้วครับ =================
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // รัศมีโลกในหน่วยเมตร
+            const rad = Math.PI / 180;
+            const dLat = (lat2 - lat1) * rad;
+            const dLon = (lon2 - lon1) * rad;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * rad) * Math.cos(lat2 * rad) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c; 
+        }
+
+        // ================= v1.5.3 Debug Mode =================
         function fetchMerchants() {
             const list = document.getElementById('shop-list');
             
-            // ถ้ายังไม่ได้ใส่ URL ในบรรทัด 352
             if (!GAS_URL || !GAS_URL.startsWith('http')) {
                 list.innerHTML = `
                     <div class="text-center text-red-500 p-6 text-sm bg-red-50 rounded-xl mt-4 border border-red-200">
@@ -575,7 +587,6 @@
 
             fetch(GAS_URL + "?action=getMerchants")
                 .then(response => {
-                    // ดักจับกรณีที่ Google ส่งหน้าเว็บแปลกๆ (เช่นหน้า Login) กลับมาแทนข้อมูล
                     if (!response.ok) throw new Error(`HTTP Status: ${response.status}`);
                     const contentType = response.headers.get("content-type");
                     if (contentType && contentType.indexOf("application/json") !== -1) {
@@ -594,7 +605,6 @@
                     }
                 })
                 .catch(err => {
-                    // โหมดดีบัก - แฉข้อมูลทั้งหมดออกมาดู
                     list.innerHTML = `
                         <div class="text-center text-red-600 p-4 text-sm bg-red-50 rounded-xl mt-4 border border-red-200 flex flex-col gap-2">
                             <i data-lucide="bug" class="w-8 h-8 mx-auto mb-1"></i>
@@ -679,7 +689,7 @@
 
             const footer = document.createElement('div');
             footer.className = "mt-6 text-center pb-2";
-            footer.innerHTML = `<div class="inline-flex items-center justify-center gap-2 text-gray-500 text-[11px] font-medium bg-white px-4 py-2 rounded-full border shadow-sm"><i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i><span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span><span class="w-1 h-1 bg-gray-300 rounded-full"></span><span>v1.5.2</span></div>`;
+            footer.innerHTML = `<div class="inline-flex items-center justify-center gap-2 text-gray-500 text-[11px] font-medium bg-white px-4 py-2 rounded-full border shadow-sm"><i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i><span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span><span class="w-1 h-1 bg-gray-300 rounded-full"></span><span>v1.5.3</span></div>`;
             list.appendChild(footer);
             lucide.createIcons(); 
         }
