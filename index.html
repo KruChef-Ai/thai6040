@@ -54,14 +54,13 @@
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden">
 
-    <!-- Header -->
+    <!-- Header (อัปเดต v1.5.2) -->
     <header class="bg-thai-blue text-white pt-5 pb-4 px-4 shadow-lg shrink-0 relative overflow-hidden">
         <div class="absolute top-0 right-0 w-48 h-48 bg-white opacity-5 rounded-full -mr-10 -mt-10 blur-3xl pointer-events-none"></div>
         
         <div class="flex justify-between items-center relative z-10 mb-2">
             <div class="flex items-center gap-3">
                 <div class="bg-white p-2 rounded-xl shadow-md border border-gray-100 flex items-center justify-center shrink-0">
-                    <!-- SVG Thai Flag -->
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" class="w-6 h-4 rounded-sm border border-gray-200">
                         <rect fill="#A51931" width="900" height="600"/>
                         <rect fill="#F4F5F8" y="100" width="900" height="400"/>
@@ -71,7 +70,7 @@
                 <div>
                     <h1 class="text-lg font-bold leading-tight tracking-wide flex items-center gap-2">
                         ไทยช่วยไทย 60/40
-                        <span class="bg-thai-red text-white text-[9px] px-2 py-0.5 rounded-full font-medium tracking-wider shadow-sm">v1.5.1</span>
+                        <span class="bg-thai-red text-white text-[9px] px-2 py-0.5 rounded-full font-medium tracking-wider shadow-sm">v1.5.2</span>
                     </h1>
                     <p class="text-[11px] text-blue-200 mt-0.5 font-light tracking-wide">ตรวจสอบสิทธิ์ • ค้นหาร้านเปิดจริง</p>
                 </div>
@@ -88,11 +87,9 @@
         
         <!-- ================= TAB 1: CALCULATOR ================= -->
         <div id="tab-calculator" class="p-4 space-y-4 space-y-5 fade-in">
-            
             <!-- Wallet Status Card -->
             <div class="bg-white rounded-2xl p-5 shadow-md border border-gray-100 relative overflow-hidden">
                 <div class="absolute left-0 top-0 bottom-0 w-1.5 thai-flag-ribbon"></div>
-                
                 <div class="flex justify-between items-end mb-5 pl-2 relative z-10">
                     <div class="flex items-center gap-2">
                         <i data-lucide="wallet" class="w-5 h-5 text-thai-blue"></i>
@@ -100,7 +97,6 @@
                     </div>
                     <p class="text-xs bg-gray-100 text-gray-500 font-medium px-2.5 py-1 rounded-md border border-gray-200" id="display-date">วันที่...</p>
                 </div>
-
                 <div class="grid grid-cols-2 gap-6 pl-2 relative z-10 mb-4">
                     <div class="bg-blue-50/50 p-3 rounded-xl border border-blue-100/50">
                         <p class="text-[11px] text-gray-500 font-medium mb-1">สิทธิ์รายวันคงเหลือ</p>
@@ -117,7 +113,6 @@
                         </div>
                     </div>
                 </div>
-
                 <button onclick="openSummaryModal()" class="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 py-2.5 rounded-xl text-xs font-bold transition flex justify-center items-center gap-2 pl-2 shadow-sm">
                     <i data-lucide="pie-chart" class="w-4 h-4"></i> ดูสรุปภาพรวมการใช้สิทธิ์ของคุณ
                 </button>
@@ -126,12 +121,10 @@
             <!-- Calculator Card -->
             <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-200 relative">
                 <div class="absolute top-0 left-4 right-4 h-px border-t border-dashed border-gray-300"></div>
-                
                 <div class="flex justify-center items-center gap-2 mb-6 text-thai-blue pt-2">
                     <i data-lucide="calculator" class="w-5 h-5"></i>
                     <h2 class="font-bold text-lg">คำนวณยอดชำระ 60/40</h2>
                 </div>
-
                 <div class="space-y-5">
                     <div>
                         <label class="block text-xs font-medium text-gray-500 mb-1.5">ระบุยอดรวมที่ร้านค้าเรียกเก็บ (บาท)</label>
@@ -142,26 +135,21 @@
                             <input type="number" id="input-amount" oninput="calculateSplit()" placeholder="0.00" class="block w-full pl-10 pr-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl text-2xl font-bold text-gray-800 focus:ring-0 focus:border-thai-blue transition outline-none shadow-inner">
                         </div>
                     </div>
-
                     <div class="bg-gray-50 rounded-xl p-5 border border-gray-200 space-y-3 shadow-sm">
                         <div class="flex justify-between items-center">
                             <span class="text-sm font-medium text-gray-600 flex items-center gap-1.5"><i data-lucide="building-2" class="w-4 h-4 text-thai-blue"></i> รัฐฯช่วยจ่าย (60%)</span>
                             <span class="font-bold text-thai-blue text-lg" id="calc-gov">฿0.00</span>
                         </div>
-                        
                         <div class="flex justify-between items-center">
                             <span class="text-sm font-medium text-gray-600 flex items-center gap-1.5"><i data-lucide="user" class="w-4 h-4 text-thai-red"></i> คุณจ่ายเอง (40% + ส่วนต่าง)</span>
                             <span class="font-bold text-thai-red text-lg" id="calc-user-share">฿0.00</span>
                         </div>
-                        
                         <div class="h-px w-full border-t border-dashed border-gray-300 my-2"></div>
-                        
                         <div class="flex justify-between items-center pt-1">
                             <span class="font-bold text-gray-800">รวมจ่ายให้ร้านค้า</span>
                             <span class="font-black text-emerald-600 text-3xl tracking-tight" id="calc-user">฿0.00</span>
                         </div>
                     </div>
-
                     <button id="btn-pay" onclick="recordTransaction()" disabled class="w-full bg-gray-200 text-gray-400 font-bold py-4 rounded-xl flex justify-center items-center gap-2 transition-all disabled:cursor-not-allowed">
                         <i data-lucide="check-circle" class="w-5 h-5"></i> บันทึกการใช้สิทธิ์ (หักยอด)
                     </button>
@@ -174,15 +162,13 @@
                     <i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i>
                     <span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span>
                     <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
-                    <span>v1.5.1</span>
+                    <span>v1.5.2</span>
                 </div>
             </div>
-
         </div>
 
         <!-- ================= TAB 2: MERCHANTS ================= -->
         <div id="tab-merchants" class="p-4 space-y-4 hidden flex-col h-full fade-in">
-            
             <div class="flex justify-between items-center shrink-0">
                 <h2 class="font-bold text-thai-blue flex items-center gap-2 text-lg">
                     <i data-lucide="map-pin" class="w-5 h-5 text-thai-red"></i> ค้นหาร้านค้า
@@ -206,7 +192,6 @@
                 <!-- Shops injected here -->
             </div>
         </div>
-
     </main>
 
     <!-- Bottom Navigation -->
@@ -304,8 +289,8 @@
     <!-- Script Configuration -->
     <script>
         // ==========================================
-        // URL Web App ของครูเชฟ (ผมฝังไว้ให้แล้วครับ ไม่ต้องแก้ไข)
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbwsaJ-H9FIyIAGu2Rc72t0iPnGsmv88nys01bHnlZljmO37v1rk7CyK4--fjqQAE8YUyw/exec"; 
+        // 🔴 ครูเชฟ: ก๊อปปี้ Web App URL ตัวล่าสุด มาวางในเครื่องหมายคำพูดด้านล่างนี้ครับ 🔴
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzhfckUvcJ70NAfocOAyaAiYzEK92eJ2D4KRvu3DWapIXweV0NXs0eZFhkwVudzCCyi-Q/exec"; 
         // ==========================================
 
         const CONST_DAILY_MAX = 200;
@@ -376,7 +361,6 @@
             state.merchants.forEach(shop => {
                 if (shop.lat && shop.lng) {
                     let markerColor = shop.status === 'OPEN' ? 'green' : 'red';
-                    // แก้บั๊ก URL รูปภาพแล้ว
                     let icon = L.icon({
                         iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor}.png`,
                         shadowUrl: `https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png`,
@@ -564,11 +548,23 @@
             } else { if(callback) callback(false); }
         }
 
-        // ================= แก้บั๊กดึงข้อมูลร้านค้า =================
+        // ================= v1.5.2 Debug Mode =================
         function fetchMerchants() {
-            if (!GAS_URL.startsWith('http')) return;
             const list = document.getElementById('shop-list');
             
+            // ถ้ายังไม่ได้ใส่ URL ในบรรทัด 352
+            if (!GAS_URL || !GAS_URL.startsWith('http')) {
+                list.innerHTML = `
+                    <div class="text-center text-red-500 p-6 text-sm bg-red-50 rounded-xl mt-4 border border-red-200">
+                        <i data-lucide="alert-triangle" class="w-8 h-8 mx-auto mb-2 text-red-500"></i>
+                        <span class="font-bold">คุณยังไม่ได้ใส่ลิงก์ API</span><br>
+                        <span class="text-xs text-red-400 mt-1 block">กรุณาใส่ลิงก์ในไฟล์ index.html (บรรทัดที่ 352) ให้เรียบร้อยครับ</span>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
             list.innerHTML = `
                 <div class="text-center text-gray-400 py-10 flex flex-col items-center gap-3">
                     <i data-lucide="loader-2" class="w-8 h-8 animate-spin text-thai-blue"></i>
@@ -578,24 +574,38 @@
             lucide.createIcons();
 
             fetch(GAS_URL + "?action=getMerchants")
-                .then(response => response.json())
+                .then(response => {
+                    // ดักจับกรณีที่ Google ส่งหน้าเว็บแปลกๆ (เช่นหน้า Login) กลับมาแทนข้อมูล
+                    if (!response.ok) throw new Error(`HTTP Status: ${response.status}`);
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                        return response.json();
+                    } else {
+                        throw new Error("เซิร์ฟเวอร์ไม่ได้ส่งข้อมูลแบบ JSON กลับมา (อาจติดหน้า Login หรือลิงก์ผิด)");
+                    }
+                })
                 .then(data => {
                     if(data.status === 'success') {
                         state.merchants = data.data;
                         renderMerchants();
                         updateMapMarkers(); 
                     } else {
-                        // แจ้งเตือนถ้ารหัส Sheet ผิดหรือระบบหลังบ้านพ่น Error
-                        list.innerHTML = `<div class="text-center text-red-500 py-8 text-sm break-words bg-red-50 rounded-xl mt-4 border border-red-100">ข้อผิดพลาดจากหลังบ้าน: ${data.message}</div>`;
+                        list.innerHTML = `<div class="text-center text-red-500 py-8 text-sm break-words bg-red-50 rounded-xl mt-4 border border-red-100">ข้อผิดพลาดจากฐานข้อมูล: ${data.message}</div>`;
                     }
                 })
                 .catch(err => {
-                    // แจ้งเตือนถ้าเชื่อมต่อไม่ได้ หรือติดปัญหาลิขสิทธิ์ CORS เพราะ Deploy ผิด
+                    // โหมดดีบัก - แฉข้อมูลทั้งหมดออกมาดู
                     list.innerHTML = `
-                        <div class="text-center text-red-500 p-6 text-sm bg-red-50 rounded-xl mt-4 border border-red-100 flex flex-col gap-2">
-                            <i data-lucide="wifi-off" class="w-8 h-8 mx-auto mb-1"></i>
-                            <span class="font-bold">เชื่อมต่อข้อมูลไม่สำเร็จ</span>
-                            <span class="text-xs text-red-400">กรุณากลับไปที่หน้า GAS -> กด "การทำให้ใช้งานได้" -> "การทำให้ใช้งานได้ใหม่" (อย่าลืมตั้งให้ 'ทุกคน' เข้าถึงได้)</span>
+                        <div class="text-center text-red-600 p-4 text-sm bg-red-50 rounded-xl mt-4 border border-red-200 flex flex-col gap-2">
+                            <i data-lucide="bug" class="w-8 h-8 mx-auto mb-1"></i>
+                            <span class="font-bold">เชื่อมต่อข้อมูลไม่สำเร็จ (โหมดดีบัก)</span>
+                            <div class="text-[10px] text-gray-600 break-all text-left bg-white p-3 rounded-lg border shadow-inner mt-2">
+                                <b class="text-thai-blue">1. ลิงก์ที่พยายามเข้าถึง:</b><br>
+                                <span class="text-red-500">${GAS_URL}</span><br><br>
+                                <b class="text-thai-blue">2. ข้อผิดพลาดที่เจอ:</b><br>
+                                <span class="text-red-500">${err.message || err.toString()}</span>
+                            </div>
+                            <span class="text-xs text-red-500 font-bold mt-2">รบกวนครูเชฟแคปจอช่องนี้ให้ผมดูหน่อยครับ!</span>
                         </div>
                     `;
                     lucide.createIcons();
@@ -637,7 +647,7 @@
                     <div class="absolute top-0 left-0 w-1 h-full ${shop.status === 'OPEN' ? 'bg-emerald-500' : 'bg-red-500'}"></div>
                     <div class="pl-2">
                         <div class="flex justify-between items-start mb-3">
-                            <div class="pr-2">
+                            <div class="pr-2 w-full">
                                 <h3 class="font-bold text-gray-800 text-base leading-tight mb-1">${shop.name}</h3>
                                 <div class="flex items-center gap-2 flex-wrap mt-1">
                                     ${statusBadge}
@@ -669,7 +679,7 @@
 
             const footer = document.createElement('div');
             footer.className = "mt-6 text-center pb-2";
-            footer.innerHTML = `<div class="inline-flex items-center justify-center gap-2 text-gray-500 text-[11px] font-medium bg-white px-4 py-2 rounded-full border border-gray-200 shadow-sm"><i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i><span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span><span class="w-1 h-1 bg-gray-300 rounded-full"></span><span>v1.5.1</span></div>`;
+            footer.innerHTML = `<div class="inline-flex items-center justify-center gap-2 text-gray-500 text-[11px] font-medium bg-white px-4 py-2 rounded-full border shadow-sm"><i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i><span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span><span class="w-1 h-1 bg-gray-300 rounded-full"></span><span>v1.5.2</span></div>`;
             list.appendChild(footer);
             lucide.createIcons(); 
         }
