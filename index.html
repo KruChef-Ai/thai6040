@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ไทยช่วยไทย 60/40</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Leaflet for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        
+        /* Custom Theme Colors */
+        .text-thai-red { color: #DA291C; }
+        .text-thai-blue { color: #1D3A70; }
+        .bg-thai-red { background-color: #DA291C; }
+        .bg-thai-blue { background-color: #1D3A70; }
+        
+        /* Thai Flag Ribbon Gradient */
+        .thai-flag-ribbon {
+            background: linear-gradient(to bottom, #DA291C 16.6%, #FFFFFF 16.6%, #FFFFFF 33.3%, #1D3A70 33.3%, #1D3A70 66.6%, #FFFFFF 66.6%, #FFFFFF 83.3%, #DA291C 83.3%);
+        }
+        .thai-flag-ribbon-horizontal {
+            background: linear-gradient(to right, #DA291C 16.6%, #FFFFFF 16.6%, #FFFFFF 33.3%, #1D3A70 33.3%, #1D3A70 66.6%, #FFFFFF 66.6%, #FFFFFF 83.3%, #DA291C 83.3%);
+        }
+
+        /* Nav Tab Styles */
+        .tab-active { color: #1D3A70; border-top: 3px solid #DA291C; background: linear-gradient(to bottom, rgba(218,41,28,0.05), transparent); }
+        .tab-inactive { color: #94a3b8; border-top: 3px solid transparent; }
+        
+        .leaflet-container { z-index: 10 !important; font-family: 'Prompt', sans-serif;}
+
+        /* Animations */
+        @keyframes slideUp {
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .toast-animate { animation: slideUp 0.3s ease-out forwards; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        
+        /* Hide scrollbar for history list */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-thai-blue text-white pt-5 pb-4 px-4 shadow-lg shrink-0 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-48 h-48 bg-white opacity-5 rounded-full -mr-10 -mt-10 blur-3xl pointer-events-none"></div>
+        
+        <div class="flex justify-between items-center relative z-10 mb-2">
+            <div class="flex items-center gap-3">
+                <div class="bg-white p-2 rounded-xl shadow-md border border-gray-100 flex items-center justify-center shrink-0">
+                    <!-- SVG Thai Flag -->
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" class="w-6 h-4 rounded-sm border border-gray-200">
+                        <rect fill="#A51931" width="900" height="600"/>
+                        <rect fill="#F4F5F8" y="100" width="900" height="400"/>
+                        <rect fill="#2D2A4A" y="200" width="900" height="200"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold leading-tight tracking-wide flex items-center gap-2">
+                        ไทยช่วยไทย 60/40
+                        <span class="bg-thai-red text-white text-[9px] px-2 py-0.5 rounded-full font-medium tracking-wider shadow-sm">v1.5.1</span>
+                    </h1>
+                    <p class="text-[11px] text-blue-200 mt-0.5 font-light tracking-wide">ตรวจสอบสิทธิ์ • ค้นหาร้านเปิดจริง</p>
+                </div>
+            </div>
+            <button onclick="resetWallet()" class="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition border border-white/20 shadow-sm backdrop-blur-sm">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> รีเซ็ต
+            </button>
+        </div>
+    </header>
+    <div class="h-1.5 w-full thai-flag-ribbon-horizontal shadow-sm shrink-0"></div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto pb-24 relative bg-gray-50/50" id="main-content">
+        
+        <!-- ================= TAB 1: CALCULATOR ================= -->
+        <div id="tab-calculator" class="p-4 space-y-4 space-y-5 fade-in">
+            
+            <!-- Wallet Status Card -->
+            <div class="bg-white rounded-2xl p-5 shadow-md border border-gray-100 relative overflow-hidden">
+                <div class="absolute left-0 top-0 bottom-0 w-1.5 thai-flag-ribbon"></div>
+                
+                <div class="flex justify-between items-end mb-5 pl-2 relative z-10">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="wallet" class="w-5 h-5 text-thai-blue"></i>
+                        <span class="font-bold text-gray-800">กระเป๋าเงินสิทธิ์</span>
+                    </div>
+                    <p class="text-xs bg-gray-100 text-gray-500 font-medium px-2.5 py-1 rounded-md border border-gray-200" id="display-date">วันที่...</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6 pl-2 relative z-10 mb-4">
+                    <div class="bg-blue-50/50 p-3 rounded-xl border border-blue-100/50">
+                        <p class="text-[11px] text-gray-500 font-medium mb-1">สิทธิ์รายวันคงเหลือ</p>
+                        <p class="text-2xl font-bold text-thai-blue"><span id="daily-balance">200.00</span> <span class="text-xs font-normal text-gray-500">บาท</span></p>
+                        <div class="h-1.5 w-full bg-gray-200 mt-2 rounded-full overflow-hidden">
+                            <div class="h-full bg-thai-red w-full rounded-full transition-all duration-500" id="daily-bar"></div>
+                        </div>
+                    </div>
+                    <div class="bg-blue-50/50 p-3 rounded-xl border border-blue-100/50">
+                        <p class="text-[11px] text-gray-500 font-medium mb-1">สิทธิ์รอบเดือนนี้</p>
+                        <p class="text-2xl font-bold text-thai-blue"><span id="monthly-balance">1000.00</span> <span class="text-xs font-normal text-gray-500">บาท</span></p>
+                        <div class="h-1.5 w-full bg-gray-200 mt-2 rounded-full overflow-hidden">
+                            <div class="h-full bg-thai-blue w-full rounded-full transition-all duration-500" id="monthly-bar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="openSummaryModal()" class="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 py-2.5 rounded-xl text-xs font-bold transition flex justify-center items-center gap-2 pl-2 shadow-sm">
+                    <i data-lucide="pie-chart" class="w-4 h-4"></i> ดูสรุปภาพรวมการใช้สิทธิ์ของคุณ
+                </button>
+            </div>
+
+            <!-- Calculator Card -->
+            <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-200 relative">
+                <div class="absolute top-0 left-4 right-4 h-px border-t border-dashed border-gray-300"></div>
+                
+                <div class="flex justify-center items-center gap-2 mb-6 text-thai-blue pt-2">
+                    <i data-lucide="calculator" class="w-5 h-5"></i>
+                    <h2 class="font-bold text-lg">คำนวณยอดชำระ 60/40</h2>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1.5">ระบุยอดรวมที่ร้านค้าเรียกเก็บ (บาท)</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span class="text-gray-400 font-bold text-xl">฿</span>
+                            </div>
+                            <input type="number" id="input-amount" oninput="calculateSplit()" placeholder="0.00" class="block w-full pl-10 pr-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl text-2xl font-bold text-gray-800 focus:ring-0 focus:border-thai-blue transition outline-none shadow-inner">
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-xl p-5 border border-gray-200 space-y-3 shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-gray-600 flex items-center gap-1.5"><i data-lucide="building-2" class="w-4 h-4 text-thai-blue"></i> รัฐฯช่วยจ่าย (60%)</span>
+                            <span class="font-bold text-thai-blue text-lg" id="calc-gov">฿0.00</span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-gray-600 flex items-center gap-1.5"><i data-lucide="user" class="w-4 h-4 text-thai-red"></i> คุณจ่ายเอง (40% + ส่วนต่าง)</span>
+                            <span class="font-bold text-thai-red text-lg" id="calc-user-share">฿0.00</span>
+                        </div>
+                        
+                        <div class="h-px w-full border-t border-dashed border-gray-300 my-2"></div>
+                        
+                        <div class="flex justify-between items-center pt-1">
+                            <span class="font-bold text-gray-800">รวมจ่ายให้ร้านค้า</span>
+                            <span class="font-black text-emerald-600 text-3xl tracking-tight" id="calc-user">฿0.00</span>
+                        </div>
+                    </div>
+
+                    <button id="btn-pay" onclick="recordTransaction()" disabled class="w-full bg-gray-200 text-gray-400 font-bold py-4 rounded-xl flex justify-center items-center gap-2 transition-all disabled:cursor-not-allowed">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i> บันทึกการใช้สิทธิ์ (หักยอด)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="mt-8 text-center pb-2">
+                <div class="inline-flex items-center justify-center gap-2 text-gray-500 text-[11px] font-medium bg-white px-4 py-2 rounded-full border border-gray-200 shadow-sm">
+                    <i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i>
+                    <span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span>
+                    <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+                    <span>v1.5.1</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= TAB 2: MERCHANTS ================= -->
+        <div id="tab-merchants" class="p-4 space-y-4 hidden flex-col h-full fade-in">
+            
+            <div class="flex justify-between items-center shrink-0">
+                <h2 class="font-bold text-thai-blue flex items-center gap-2 text-lg">
+                    <i data-lucide="map-pin" class="w-5 h-5 text-thai-red"></i> ค้นหาร้านค้า
+                </h2>
+                <button onclick="openAddMerchantModal()" class="bg-thai-red text-white text-xs px-3 py-2 rounded-lg font-medium flex items-center gap-1.5 shadow-md hover:bg-red-700 transition">
+                    <i data-lucide="store" class="w-4 h-4"></i> เพิ่มร้านใหม่
+                </button>
+            </div>
+
+            <!-- Map Container -->
+            <div class="w-full h-56 bg-gray-200 rounded-2xl overflow-hidden shadow-inner shrink-0 border-2 border-white relative" id="map-container">
+                <div id="map" class="w-full h-full"></div>
+                <div class="absolute top-2 right-2 bg-white/90 backdrop-blur text-[10px] font-bold px-2 py-1 rounded-md shadow flex flex-col gap-1 z-[1000] border border-gray-200">
+                    <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-emerald-500"></div> เปิด</span>
+                    <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-red-500"></div> ปิด</span>
+                </div>
+            </div>
+
+            <!-- Shop List -->
+            <div class="flex-1 overflow-y-auto space-y-3 pb-4" id="shop-list">
+                <!-- Shops injected here -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bg-white fixed bottom-0 w-full flex shrink-0 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <button onclick="switchTab('calculator')" id="nav-calculator" class="flex-1 py-3.5 flex flex-col items-center gap-1 tab-active transition-all">
+            <i data-lucide="calculator" class="w-5 h-5"></i>
+            <span class="text-[10px] font-bold tracking-wide">สิทธิ์ของฉัน</span>
+        </button>
+        <button onclick="switchTab('merchants')" id="nav-merchants" class="flex-1 py-3.5 flex flex-col items-center gap-1 tab-inactive transition-all">
+            <i data-lucide="store" class="w-5 h-5"></i>
+            <span class="text-[10px] font-bold tracking-wide">ร้านค้า 60/40</span>
+        </button>
+    </nav>
+
+    <!-- Modal: Summary History -->
+    <div id="modal-summary" class="fixed inset-0 bg-black/70 z-[60] hidden flex-col justify-end backdrop-blur-sm">
+        <div class="bg-white rounded-t-3xl transform transition-transform translate-y-full flex flex-col max-h-[90vh]" id="modal-summary-content">
+            <div class="p-6 pb-4 border-b border-gray-100 flex justify-between items-center bg-white rounded-t-3xl shrink-0">
+                <h3 class="font-bold text-lg text-thai-blue flex items-center gap-2">
+                    <i data-lucide="pie-chart" class="w-5 h-5 text-thai-red"></i> สรุปการใช้สิทธิ์ 60/40
+                </h3>
+                <button onclick="closeSummaryModal()" class="text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto no-scrollbar bg-gray-50/50 flex-1">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-2xl border border-blue-200 shadow-sm relative overflow-hidden">
+                        <i data-lucide="building-2" class="w-16 h-16 absolute -right-2 -bottom-2 text-blue-200 opacity-50"></i>
+                        <p class="text-[11px] font-bold text-blue-800 mb-1 relative z-10">รัฐช่วยคุณไปแล้วรวม</p>
+                        <p class="text-xl font-black text-thai-blue relative z-10" id="sum-gov">0.00 <span class="text-xs font-normal">บ.</span></p>
+                    </div>
+                    <div class="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-2xl border border-red-200 shadow-sm relative overflow-hidden">
+                        <i data-lucide="user" class="w-16 h-16 absolute -right-2 -bottom-2 text-red-200 opacity-50"></i>
+                        <p class="text-[11px] font-bold text-red-800 mb-1 relative z-10">คุณจ่ายเองรวม</p>
+                        <p class="text-xl font-black text-thai-red relative z-10" id="sum-user">0.00 <span class="text-xs font-normal">บ.</span></p>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5"><i data-lucide="history" class="w-4 h-4 text-gray-400"></i> ประวัติทำรายการในเครื่องนี้</p>
+                    <div id="history-list" class="space-y-2"></div>
+                </div>
+            </div>
+            <div class="p-4 bg-white border-t border-gray-100 shrink-0">
+                <button onclick="closeSummaryModal()" class="w-full bg-thai-blue hover:bg-blue-900 text-white font-bold py-3.5 rounded-xl shadow-md transition-all">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Merchant -->
+    <div id="modal-add-merchant" class="fixed inset-0 bg-black/70 z-[60] hidden flex-col justify-end backdrop-blur-sm">
+        <div class="bg-white rounded-t-3xl p-6 transform transition-transform translate-y-full max-h-[90vh] overflow-y-auto" id="modal-add-content">
+            <div class="flex justify-between items-center mb-5 sticky top-0 bg-white z-10 pb-3 border-b border-gray-100">
+                <h3 class="font-bold text-lg text-thai-blue flex items-center gap-2">
+                    <i data-lucide="map-pin" class="w-5 h-5 text-thai-red"></i> ปักหมุดร้านใหม่
+                </h3>
+                <button onclick="closeAddMerchantModal()" class="text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="bg-blue-50 border border-blue-100 p-3 rounded-xl mb-5 flex gap-3 items-start">
+                <i data-lucide="info" class="w-5 h-5 text-thai-blue shrink-0 mt-0.5"></i>
+                <p class="text-xs text-gray-600 leading-relaxed">ระบบจะบันทึกพิกัด GPS ของคุณเป็นที่ตั้งร้าน <b>กรุณายืนอยู่หน้าร้านจริงๆ</b> (ระบบล็อครัศมี 300 เมตรเพื่อความแม่นยำ)</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">ชื่อร้านค้า <span class="text-thai-red">*</span></label>
+                    <input type="text" id="new-shop-name" placeholder="เช่น ร้านเจ๊ไฝ ตามสั่ง" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-thai-blue text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">ประเภท <span class="text-thai-red">*</span></label>
+                    <select id="new-shop-type" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-thai-blue text-sm">
+                        <option value="อาหาร">ร้านอาหาร/เครื่องดื่ม</option>
+                        <option value="ของชำ">ร้านขายของชำ</option>
+                        <option value="บริการ">บริการทั่วไป</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">รายละเอียด/สินค้าที่ขาย</label>
+                    <input type="text" id="new-shop-desc" placeholder="เช่น ก๋วยเตี๋ยวเรือ, ขายส่งน้ำ" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-thai-blue text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1.5">เวลาเปิด-ปิด</label>
+                        <input type="text" id="new-shop-hours" placeholder="เช่น 08:00 - 17:00" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-thai-blue text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1.5">เบอร์โทรศัพท์</label>
+                        <input type="tel" id="new-shop-phone" placeholder="เช่น 0812345678" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-thai-blue text-sm">
+                    </div>
+                </div>
+                <button onclick="submitNewMerchant()" id="btn-submit-merchant" class="w-full bg-thai-blue hover:bg-blue-900 text-white font-bold py-3.5 rounded-xl mt-4 shadow-lg flex justify-center items-center gap-2">
+                    <i data-lucide="save" class="w-4 h-4"></i> บันทึกข้อมูลร้านค้า
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Configuration -->
+    <script>
+        // ==========================================
+        // URL Web App ของครูเชฟ (ผมฝังไว้ให้แล้วครับ ไม่ต้องแก้ไข)
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwiPKTuPtSBFdQVCe6Qb180-HxIpr-HtjupJWN-3Gjdgq6549qxaWOIeLSadVCSbM1dhQ/exec"; 
+        // ==========================================
+
+        const CONST_DAILY_MAX = 200;
+        const CONST_MONTHLY_MAX = 1000;
+        const VALID_RADIUS_METERS = 300; 
+        const DUPLICATE_RADIUS = 50; 
+        
+        let state = {
+            dailyBalance: CONST_DAILY_MAX,
+            monthlyBalance: CONST_MONTHLY_MAX,
+            lastUsedDate: null,
+            currentCalculatedGov: 0,
+            currentCalculatedUser: 0,
+            merchants: [],
+            history: [],
+            userLat: null,
+            userLng: null
+        };
+
+        let map = null;
+        let mapMarkers = [];
+        let userMarker = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            const today = new Date();
+            document.getElementById('display-date').innerText = today.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+            loadWalletState();
+            getUserLocation((success) => {
+                if(success && map) updateUserMapLocation();
+            }); 
+            fetchMerchants();
+        });
+
+        // ================= MAP LOGIC =================
+        function initMap() {
+            if (map !== null) return; 
+            let centerLat = state.userLat || 13.7563;
+            let centerLng = state.userLng || 100.5018;
+            map = L.map('map', { zoomControl: false }).setView([centerLat, centerLng], 15);
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+            updateUserMapLocation();
+            updateMapMarkers();
+        }
+
+        function updateUserMapLocation() {
+            if (!map || !state.userLat || !state.userLng) return;
+            if (userMarker) map.removeLayer(userMarker);
+            let blueIcon = L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+            userMarker = L.marker([state.userLat, state.userLng], {icon: blueIcon}).addTo(map).bindPopup('<div class="text-center font-bold text-thai-blue text-sm">📍 คุณอยู่ที่นี่</div>');
+            map.setView([state.userLat, state.userLng], 15);
+        }
+
+        function updateMapMarkers() {
+            if (!map) return;
+            mapMarkers.forEach(m => map.removeLayer(m));
+            mapMarkers = [];
+            state.merchants.forEach(shop => {
+                if (shop.lat && shop.lng) {
+                    let markerColor = shop.status === 'OPEN' ? 'green' : 'red';
+                    // แก้บั๊ก URL รูปภาพแล้ว
+                    let icon = L.icon({
+                        iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor}.png`,
+                        shadowUrl: `https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png`,
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    });
+
+                    let popupContent = `
+                        <div class="min-w-[120px]">
+                            <h4 class="font-bold text-sm text-gray-800 mb-1">${shop.name}</h4>
+                            <p class="text-[10px] text-gray-500 mb-2">${shop.type}</p>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${shop.status === 'OPEN' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">${shop.status === 'OPEN' ? '🟢 เปิดบริการ' : '🔴 ปิดทำการ'}</span>
+                        </div>
+                    `;
+
+                    let marker = L.marker([shop.lat, shop.lng], {icon: icon})
+                        .addTo(map)
+                        .bindPopup(popupContent);
+                    
+                    mapMarkers.push(marker);
+                }
+            });
+        }
+
+        // ================= WALLET LOGIC =================
+        function loadWalletState() {
+            const saved = localStorage.getItem('thai6040_wallet');
+            const todayStr = new Date().toDateString();
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                state.monthlyBalance = parsed.monthlyBalance;
+                if (parsed.history) state.history = parsed.history;
+                if (parsed.lastUsedDate !== todayStr) {
+                    state.dailyBalance = Math.min(CONST_DAILY_MAX, state.monthlyBalance);
+                } else {
+                    state.dailyBalance = parsed.dailyBalance;
+                }
+                state.lastUsedDate = todayStr;
+            }
+            updateWalletUI();
+        }
+
+        function saveWalletState() {
+            localStorage.setItem('thai6040_wallet', JSON.stringify({
+                dailyBalance: state.dailyBalance,
+                monthlyBalance: state.monthlyBalance,
+                lastUsedDate: state.lastUsedDate,
+                history: state.history
+            }));
+        }
+
+        function resetWallet() {
+            state.dailyBalance = CONST_DAILY_MAX;
+            state.monthlyBalance = CONST_MONTHLY_MAX;
+            state.lastUsedDate = new Date().toDateString();
+            state.history = [];
+            saveWalletState();
+            updateWalletUI();
+            calculateSplit();
+            showToast('รีเซ็ตสิทธิ์จำลองเรียบร้อยแล้ว');
+        }
+
+        function updateWalletUI() {
+            document.getElementById('daily-balance').innerText = state.dailyBalance.toFixed(2);
+            document.getElementById('monthly-balance').innerText = state.monthlyBalance.toFixed(2);
+            const dailyPct = (state.dailyBalance / CONST_DAILY_MAX) * 100;
+            const monthlyPct = (state.monthlyBalance / CONST_MONTHLY_MAX) * 100;
+            document.getElementById('daily-bar').style.width = `${Math.max(0, dailyPct)}%`;
+            document.getElementById('monthly-bar').style.width = `${Math.max(0, monthlyPct)}%`;
+            if(state.dailyBalance === 0) document.getElementById('daily-bar').classList.replace('bg-thai-red', 'bg-gray-400');
+            else document.getElementById('daily-bar').classList.replace('bg-gray-400', 'bg-thai-red');
+        }
+
+        function calculateSplit() {
+            const amountInput = document.getElementById('input-amount').value;
+            const amount = parseFloat(amountInput) || 0;
+            const btnPay = document.getElementById('btn-pay');
+
+            if (amount <= 0 || state.monthlyBalance <= 0 || state.dailyBalance <= 0) {
+                state.currentCalculatedGov = 0;
+                state.currentCalculatedUser = amount;
+                document.getElementById('calc-gov').innerText = `฿0.00`;
+                document.getElementById('calc-user-share').innerText = `฿${amount.toFixed(2)}`;
+                document.getElementById('calc-user').innerText = `฿${amount.toFixed(2)}`;
+                btnPay.disabled = amount <= 0;
+                if(amount > 0) {
+                    btnPay.className = "w-full bg-thai-blue text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 shadow-lg";
+                } else {
+                    btnPay.className = "w-full bg-gray-200 text-gray-400 font-bold py-4 rounded-xl flex justify-center items-center gap-2 transition-all disabled:cursor-not-allowed";
+                }
+                return;
+            }
+
+            let govShare = amount * 0.6;
+            if (govShare > state.dailyBalance) govShare = state.dailyBalance;
+            if (govShare > state.monthlyBalance) govShare = state.monthlyBalance;
+            let userShare = amount - govShare;
+
+            state.currentCalculatedGov = govShare;
+            state.currentCalculatedUser = userShare;
+            document.getElementById('calc-gov').innerText = `฿${govShare.toFixed(2)}`;
+            document.getElementById('calc-user-share').innerText = `฿${userShare.toFixed(2)}`;
+            document.getElementById('calc-user').innerText = `฿${amount.toFixed(2)}`;
+            btnPay.disabled = false;
+            btnPay.className = "w-full bg-thai-blue text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 shadow-lg";
+        }
+
+        function recordTransaction() {
+            const amount = parseFloat(document.getElementById('input-amount').value);
+            if (!amount || amount <= 0) return;
+
+            const now = new Date();
+            state.history.unshift({
+                date: now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH').slice(0,5),
+                total: amount,
+                gov: state.currentCalculatedGov,
+                user: state.currentCalculatedUser
+            });
+            if(state.history.length > 20) state.history.pop();
+
+            state.dailyBalance -= state.currentCalculatedGov;
+            state.monthlyBalance -= state.currentCalculatedGov;
+            saveWalletState();
+            updateWalletUI();
+            showToast(`ชำระสำเร็จ! รัฐช่วย ฿${state.currentCalculatedGov.toFixed(2)}`);
+
+            if (GAS_URL.startsWith('http')) {
+                fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'recordTransaction',
+                        data: { totalAmount: amount, govShare: state.currentCalculatedGov, userShare: state.currentCalculatedUser }
+                    })
+                }).catch(e => console.log('Log error:', e));
+            }
+            document.getElementById('input-amount').value = '';
+            calculateSplit();
+        }
+
+        function openSummaryModal() {
+            const modal = document.getElementById('modal-summary');
+            const content = document.getElementById('modal-summary-content');
+            const sumGov = CONST_MONTHLY_MAX - state.monthlyBalance;
+            let sumUser = 0;
+            state.history.forEach(item => sumUser += item.user);
+
+            document.getElementById('sum-gov').innerHTML = `${sumGov.toFixed(2)} <span class="text-xs font-normal">บ.</span>`;
+            document.getElementById('sum-user').innerHTML = `${sumUser.toFixed(2)} <span class="text-xs font-normal">บ.</span>`;
+
+            const historyList = document.getElementById('history-list');
+            historyList.innerHTML = '';
+            if(state.history.length === 0) {
+                historyList.innerHTML = `<div class="text-center py-6 bg-white rounded-xl border border-gray-100 text-xs text-gray-400">ยังไม่มีประวัติการทำรายการ</div>`;
+            } else {
+                state.history.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = "bg-white p-3 rounded-xl border border-gray-100 flex justify-between items-center shadow-sm text-xs";
+                    div.innerHTML = `<div><p class="font-bold">ยอด ฿${item.total.toFixed(2)}</p><p class="text-[10px] text-gray-400">${item.date}</p></div><div class="text-right"><p class="text-thai-blue">รัฐช่วย ฿${item.gov.toFixed(2)}</p><p class="text-thai-red">จ่ายเอง ฿${item.user.toFixed(2)}</p></div>`;
+                    historyList.appendChild(div);
+                });
+            }
+            lucide.createIcons();
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => content.classList.remove('translate-y-full'), 10);
+        }
+
+        function closeSummaryModal() {
+            document.getElementById('modal-summary-content').classList.add('translate-y-full');
+            setTimeout(() => {
+                document.getElementById('modal-summary').classList.add('hidden');
+                document.getElementById('modal-summary').classList.remove('flex');
+            }, 300);
+        }
+
+        function getUserLocation(callback) {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    state.userLat = position.coords.latitude;
+                    state.userLng = position.coords.longitude;
+                    if(callback) callback(true);
+                }, (error) => { if(callback) callback(false); }, { enableHighAccuracy: true });
+            } else { if(callback) callback(false); }
+        }
+
+        // ================= แก้บั๊กดึงข้อมูลร้านค้า =================
+        function fetchMerchants() {
+            if (!GAS_URL.startsWith('http')) return;
+            const list = document.getElementById('shop-list');
+            
+            list.innerHTML = `
+                <div class="text-center text-gray-400 py-10 flex flex-col items-center gap-3">
+                    <i data-lucide="loader-2" class="w-8 h-8 animate-spin text-thai-blue"></i>
+                    <span class="text-sm font-medium text-thai-blue">กำลังดึงข้อมูลร้านค้า...</span>
+                </div>
+            `;
+            lucide.createIcons();
+
+            fetch(GAS_URL + "?action=getMerchants")
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status === 'success') {
+                        state.merchants = data.data;
+                        renderMerchants();
+                        updateMapMarkers(); 
+                    } else {
+                        // แจ้งเตือนถ้ารหัส Sheet ผิดหรือระบบหลังบ้านพ่น Error
+                        list.innerHTML = `<div class="text-center text-red-500 py-8 text-sm break-words bg-red-50 rounded-xl mt-4 border border-red-100">ข้อผิดพลาดจากหลังบ้าน: ${data.message}</div>`;
+                    }
+                })
+                .catch(err => {
+                    // แจ้งเตือนถ้าเชื่อมต่อไม่ได้ หรือติดปัญหาลิขสิทธิ์ CORS เพราะ Deploy ผิด
+                    list.innerHTML = `
+                        <div class="text-center text-red-500 p-6 text-sm bg-red-50 rounded-xl mt-4 border border-red-100 flex flex-col gap-2">
+                            <i data-lucide="wifi-off" class="w-8 h-8 mx-auto mb-1"></i>
+                            <span class="font-bold">เชื่อมต่อข้อมูลไม่สำเร็จ</span>
+                            <span class="text-xs text-red-400">กรุณากลับไปที่หน้า GAS -> กด "การทำให้ใช้งานได้" -> "การทำให้ใช้งานได้ใหม่" (อย่าลืมตั้งให้ 'ทุกคน' เข้าถึงได้)</span>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                });
+        }
+
+        function renderMerchants() {
+            const list = document.getElementById('shop-list');
+            list.innerHTML = '';
+            if (state.merchants.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-500 bg-white border border-gray-200 rounded-xl py-10 text-sm shadow-sm mt-4">ยังไม่มีข้อมูลร้านค้าในระบบ</div>';
+                return;
+            }
+
+            state.merchants.forEach(shop => {
+                let statusBadge = shop.status === 'OPEN' 
+                    ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md text-[10px] font-bold border border-emerald-200">🟢 เปิดบริการ</span>' 
+                    : '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-200">🔴 ปิดทำการ</span>';
+                
+                let trustBadge = '';
+                if (shop.reportCount && shop.reportCount > 0) {
+                    trustBadge = `<span class="bg-red-50 text-thai-red px-2 py-1 rounded-lg text-[10px] font-bold border border-red-200 flex items-center gap-1 w-full"><i data-lucide="shield-alert" class="w-3.5 h-3.5 shrink-0"></i> ⚠️ ระวัง: ร้านนี้มีประวัติบวกราคา/เก็บค่าธรรมเนียม (${shop.reportCount} ครั้ง)</span>`;
+                } else {
+                    trustBadge = `<span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg text-[10px] font-bold border border-emerald-200 flex items-center gap-1 w-full"><i data-lucide="shield-check" class="w-3.5 h-3.5 shrink-0"></i> 🛡️ ร้านนี้ปกติ / ราคาเป็นธรรม</span>`;
+                }
+
+                let distText = '';
+                if (state.userLat && shop.lat) {
+                    const dist = calculateDistance(state.userLat, state.userLng, shop.lat, shop.lng);
+                    distText = dist < 1000 ? `ห่าง ${dist.toFixed(0)} ม.` : `ห่าง ${(dist/1000).toFixed(1)} กม.`;
+                }
+
+                let streetViewUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${shop.lat},${shop.lng}`;
+                let navUrl = `https://www.google.com/maps/dir/?api=1&destination=${shop.lat},${shop.lng}`;
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-4.5 rounded-2xl shadow-sm border border-gray-100 mb-3 relative overflow-hidden";
+                card.innerHTML = `
+                    <div class="absolute top-0 left-0 w-1 h-full ${shop.status === 'OPEN' ? 'bg-emerald-500' : 'bg-red-500'}"></div>
+                    <div class="pl-2">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="pr-2">
+                                <h3 class="font-bold text-gray-800 text-base leading-tight mb-1">${shop.name}</h3>
+                                <div class="flex items-center gap-2 flex-wrap mt-1">
+                                    ${statusBadge}
+                                    <span class="text-[11px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">${shop.type}</span>
+                                    ${distText ? `<span class="text-[11px] font-medium text-thai-blue flex items-center"><i data-lucide="map-pin" class="w-3 h-3 mr-0.5"></i> ${distText}</span>` : ''}
+                                </div>
+                                <div class="mt-2.5 flex">${trustBadge}</div>
+                            </div>
+                        </div>
+                        
+                        ${shop.desc || shop.hours || shop.tel ? `
+                        <div class="bg-blue-50/40 p-2.5 rounded-xl text-[11px] text-gray-600 space-y-1 mb-3 border border-blue-100/30">
+                            ${shop.desc ? `<div class="flex items-start gap-1.5"><i data-lucide="tag" class="w-3.5 h-3.5 text-thai-blue shrink-0 mt-0.5"></i><span>${shop.desc}</span></div>` : ''}
+                            ${shop.hours ? `<div class="flex items-start gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5 text-thai-blue shrink-0 mt-0.5"></i><span>${shop.hours}</span></div>` : ''}
+                            ${shop.tel ? `<div class="flex items-start gap-1.5"><i data-lucide="phone" class="w-3.5 h-3.5 text-thai-blue shrink-0 mt-0.5"></i><span>${shop.tel}</span></div>` : ''}
+                        </div>
+                        ` : ''}
+
+                        <div class="flex gap-2">
+                            <a href="${navUrl}" target="_blank" class="flex-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 py-2 rounded-xl text-xs font-bold transition flex justify-center items-center gap-1.5"><i data-lucide="navigation" class="w-3.5 h-3.5"></i> นำทาง</a>
+                            <button onclick="updateShopStatus('${shop.id}', ${shop.lat}, ${shop.lng})" class="flex-1 bg-white text-thai-blue hover:bg-blue-50 border border-blue-200 py-2 rounded-xl text-xs font-bold transition flex justify-center items-center gap-1.5"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> สถานะ</button>
+                            <button onclick="reportShop('${shop.id}', ${shop.lat}, ${shop.lng})" class="w-10 bg-red-50 text-thai-red hover:bg-red-100 border border-red-200 rounded-xl flex justify-center items-center transition" title="รายงานบวกราคาเพิ่ม"><i data-lucide="flag" class="w-4 h-4"></i></button>
+                            <a href="${streetViewUrl}" target="_blank" class="w-10 bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200 rounded-xl flex justify-center items-center transition" title="สตรีทวิว"><i data-lucide="street-view" class="w-4 h-4 text-thai-red"></i></a>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+
+            const footer = document.createElement('div');
+            footer.className = "mt-6 text-center pb-2";
+            footer.innerHTML = `<div class="inline-flex items-center justify-center gap-2 text-gray-500 text-[11px] font-medium bg-white px-4 py-2 rounded-full border border-gray-200 shadow-sm"><i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i><span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span><span class="w-1 h-1 bg-gray-300 rounded-full"></span><span>v1.5.1</span></div>`;
+            list.appendChild(footer);
+            lucide.createIcons(); 
+        }
+
+        function reportShop(shopId, shopLat, shopLng) {
+            if(!state.userLat) { showToast("กำลังดึงพิกัด GPS ของคุณ...", "error"); getUserLocation(); return; }
+            const dist = calculateDistance(state.userLat, state.userLng, shopLat, shopLng);
+            if (dist > VALID_RADIUS_METERS) {
+                showCustomAlert(`คุณอยู่ห่างจากร้าน <b class="text-thai-red">${dist.toFixed(0)} เมตร</b><br><span class="text-xs text-gray-500 mt-2 block">ต้องอยู่ในรัศมี ${VALID_RADIUS_METERS} เมตร เพื่อส่งรายงานพฤติกรรมร้านค้า (ป้องกันการแจ้งเท็จ)</span>`, true);
+                return;
+            }
+            const isConfirmed = confirm("คุณต้องการรายงานว่าร้านนี้มีพฤติกรรม 'บวกราคาเพิ่ม หรือ เก็บค่าธรรมเนียมแฝง' ใช่หรือไม่?");
+            if (!isConfirmed) return;
+
+            showToast("กำลังส่งรายงาน...");
+            fetch(GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'reportMerchant', data: { shopId: shopId, lat: state.userLat, lng: state.userLng } })
+            }).then(r => r.json()).then(res => {
+                if(res.status === 'success') {
+                    showCustomAlert("ส่งรายงานสำเร็จ!<br><span class='text-xs text-gray-500 mt-1 block'>ระบบจะขึ้นป้ายเตือนสำหรับผู้ใช้รายต่อไปทันที ขอบคุณที่ช่วยสอดส่องดูแลคอมมูนิตี้ครับ</span>");
+                    fetchMerchants(); 
+                }
+            }).catch(e => showToast("เกิดข้อผิดพลาด", "error"));
+        }
+
+        function updateShopStatus(shopId, shopLat, shopLng) {
+            if(!state.userLat) { showToast("กำลังดึงพิกัด GPS..."); getUserLocation(); return; }
+            const dist = calculateDistance(state.userLat, state.userLng, shopLat, shopLng);
+            if (dist > VALID_RADIUS_METERS) {
+                showCustomAlert(`คุณอยู่ห่างจากร้าน <b class="text-thai-red">${dist.toFixed(0)} เมตร</b><br><span class="text-xs text-gray-500 mt-2 block">ต้องอยู่ในรัศมี ${VALID_RADIUS_METERS} เมตร เพื่อยืนยันสถานะ</span>`, true);
+                return;
+            }
+            const isConfirmed = confirm("ร้านค้านี้เปิดให้บริการอยู่หรือไม่?\n\n[OK] = เปิดอยู่\n[Cancel] = ปิดแล้ว");
+            const newStatus = isConfirmed ? 'OPEN' : 'CLOSED';
+            showToast("กำลังบันทึก...");
+            fetch(GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'updateStatus', data: { shopId: shopId, status: newStatus, lat: state.userLat, lng: state.userLng } })
+            }).then(r => r.json()).then(res => { if(res.status === 'success') { showToast("สำเร็จ!"); fetchMerchants(); } });
+        }
+
+        function openAddMerchantModal() {
+            if(!state.userLat) {
+                getUserLocation((success) => { if(success) showModal(); else showToast("กรุณาเปิด GPS", "error"); });
+            } else { showModal(); }
+            function showModal() {
+                const modal = document.getElementById('modal-add-merchant');
+                modal.classList.remove('hidden'); modal.classList.add('flex');
+                setTimeout(() => document.getElementById('modal-add-content').classList.remove('translate-y-full'), 10);
+            }
+        }
+
+        function closeAddMerchantModal() {
+            document.getElementById('modal-add-content').classList.add('translate-y-full');
+            setTimeout(() => { document.getElementById('modal-add-merchant').classList.add('hidden'); document.getElementById('modal-add-merchant').classList.remove('flex'); }, 300);
+        }
+
+        function submitNewMerchant() {
+            const name = document.getElementById('new-shop-name').value.trim();
+            const type = document.getElementById('new-shop-type').value;
+            const desc = document.getElementById('new-shop-desc').value.trim();
+            const hours = document.getElementById('new-shop-hours').value.trim();
+            const phone = document.getElementById('new-shop-phone').value.trim();
+
+            if (!name) { showToast("กรุณากรอกชื่อร้านค้า", "error"); return; }
+            if (state.userLat && state.merchants.length > 0) {
+                let isDuplicate = false;
+                for (let shop of state.merchants) {
+                    if (shop.name === name && calculateDistance(state.userLat, state.userLng, shop.lat, shop.lng) <= DUPLICATE_RADIUS) {
+                        isDuplicate = true; break;
+                    }
+                }
+                if (isDuplicate) { showCustomAlert(`พบร้านชื่อ <b>"${name}"</b> อยู่ใกล้คุณในระยะ 50 เมตรแล้ว`, true); return; }
+            }
+
+            const btn = document.getElementById('btn-submit-merchant');
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> กำลังบันทึก...`;
+            lucide.createIcons();
+            btn.disabled = true;
+
+            fetch(GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'addMerchant', data: { name, type, desc, hours, phone, lat: state.userLat, lng: state.userLng } })
+            }).then(r => r.json()).then(res => {
+                if(res.status === 'success') {
+                    showToast("เพิ่มร้านค้าสำเร็จ!"); closeAddMerchantModal();
+                    document.getElementById('new-shop-name').value = ''; document.getElementById('new-shop-desc').value = '';
+                    document.getElementById('new-shop-hours').value = ''; document.getElementById('new-shop-phone').value = '';
+                    fetchMerchants();
+                }
+            }).finally(() => {
+                btn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> บันทึกข้อมูลร้านค้า`;
+                lucide.createIcons();
+                btn.disabled = false;
+            });
+        }
+
+        function switchTab(tabName) {
+            document.getElementById('tab-calculator').classList.add('hidden');
+            document.getElementById('tab-calculator').classList.remove('flex', 'fade-in');
+            document.getElementById('tab-merchants').classList.add('hidden');
+            document.getElementById('tab-merchants').classList.remove('flex', 'fade-in');
+            void document.getElementById(`tab-${tabName}`).offsetWidth;
+
+            if(tabName === 'merchants') {
+                document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+                document.getElementById(`tab-${tabName}`).classList.add('flex', 'fade-in');
+                fetchMerchants(); setTimeout(() => { initMap(); if(map) map.invalidateSize(); }, 150);
+            } else {
+                document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+                document.getElementById(`tab-${tabName}`).classList.add('fade-in');
+            }
+            document.getElementById('nav-calculator').classList.replace('tab-active', 'tab-inactive');
+            document.getElementById('nav-merchants').classList.replace('tab-active', 'tab-inactive');
+            document.getElementById(`nav-${tabName}`).classList.replace('tab-inactive', 'tab-active');
+        }
+
+        function showToast(message, type="info") {
+            const existing = document.querySelector('.toast-animate');
+            if(existing) existing.remove();
+            const toast = document.createElement('div');
+            const bgClass = type === 'error' ? 'bg-thai-red' : 'bg-gray-800';
+            toast.className = `fixed bottom-24 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-xl text-white text-sm shadow-xl z-[70] flex items-center gap-2 toast-animate font-medium ${bgClass}`;
+            toast.innerHTML = `${type === 'error' ? '<i data-lucide="alert-circle" class="w-4 h-4"></i>' : '<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>'} ${message}`;
+            document.body.appendChild(toast); lucide.createIcons();
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        function showCustomAlert(htmlMessage, isError=false) {
+            const overlay = document.createElement('div');
+            overlay.className = "fixed inset-0 bg-black/60 z-[80] flex items-center justify-center p-4 backdrop-blur-sm fade-in";
+            const box = document.createElement('div');
+            box.className = "bg-white p-6 rounded-3xl shadow-2xl max-w-xs w-full text-center border";
+            box.innerHTML = `<div class="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center mb-5 ${isError ? 'text-thai-red bg-red-50' : 'text-thai-blue bg-blue-50'} shadow-sm"><i data-lucide="${isError ? 'shield-alert' : 'info'}" class="w-7 h-7"></i></div><div class="text-gray-800 font-medium mb-6 leading-relaxed">${htmlMessage}</div><button class="w-full bg-thai-blue text-white py-3 rounded-xl font-bold" onclick="this.closest('.fixed').remove()">รับทราบ</button>`;
+            overlay.appendChild(box); document.body.appendChild(overlay); lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
