@@ -54,7 +54,7 @@
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden">
 
-    <!-- Header (อัปเดต v1.5.5) -->
+    <!-- Header (อัปเดต v1.5.6) -->
     <header class="bg-thai-blue text-white pt-5 pb-4 px-4 shadow-lg shrink-0 relative overflow-hidden">
         <div class="absolute top-0 right-0 w-48 h-48 bg-white opacity-5 rounded-full -mr-10 -mt-10 blur-3xl pointer-events-none"></div>
         
@@ -70,7 +70,7 @@
                 <div>
                     <h1 class="text-lg font-bold leading-tight tracking-wide flex items-center gap-2">
                         ไทยช่วยไทย 60/40
-                        <span class="bg-thai-red text-white text-[9px] px-2 py-0.5 rounded-full font-medium tracking-wider shadow-sm">v1.5.5</span>
+                        <span class="bg-thai-red text-white text-[9px] px-2 py-0.5 rounded-full font-medium tracking-wider shadow-sm">v1.5.6</span>
                     </h1>
                     <p class="text-[11px] text-blue-200 mt-0.5 font-light tracking-wide">ตรวจสอบสิทธิ์ • ค้นหาร้านเปิดจริง</p>
                 </div>
@@ -162,7 +162,7 @@
                     <i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i>
                     <span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span>
                     <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
-                    <span>v1.5.5</span>
+                    <span>v1.5.6</span>
                 </div>
             </div>
         </div>
@@ -623,6 +623,7 @@
         function renderMerchants() {
             const list = document.getElementById('shop-list');
             list.innerHTML = '';
+
             if (state.merchants.length === 0) {
                 list.innerHTML = '<div class="text-center text-gray-500 bg-white border border-gray-200 rounded-xl py-10 text-sm shadow-sm mt-4">ยังไม่มีข้อมูลร้านค้าในระบบ</div>';
                 return;
@@ -633,13 +634,28 @@
                     ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md text-[10px] font-bold border border-emerald-200">🟢 เปิดบริการ</span>' 
                     : '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-200">🔴 ปิดทำการ</span>';
                 
-                // อัปเดต v1.5.5 Logic: เปลี่ยนป้ายสถานะตามยอดกด Like / Report
+                // ==========================================
+                // อัปเดต v1.5.6: ระบบคืนความยุติธรรม (Net Score)
+                // ==========================================
+                let reportScore = shop.reportCount || 0; // คะแนนแย่
+                let verifyScore = shop.verifyCount || 0; // คะแนนดี
+                
                 let trustBadge = '';
-                if (shop.reportCount && shop.reportCount > 0) {
-                    trustBadge = `<span class="bg-red-50 text-thai-red px-2 py-1 rounded-lg text-[10px] font-bold border border-red-200 flex items-center gap-1 w-full"><i data-lucide="shield-alert" class="w-3.5 h-3.5 shrink-0"></i> ⚠️ ระวัง: มีประวัติบวกราคา (${shop.reportCount} ครั้ง)</span>`;
-                } else if (shop.verifyCount && shop.verifyCount > 0) {
-                    trustBadge = `<span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg text-[10px] font-bold border border-emerald-200 flex items-center gap-1 w-full"><i data-lucide="thumbs-up" class="w-3.5 h-3.5 shrink-0"></i> 👍 ยืนยันแล้ว: ราคาเป็นธรรม (${shop.verifyCount} เสียง)</span>`;
-                } else {
+                
+                // ถ้าคะแนนแย่ ชนะ คะแนนดี (เกิน 1 เสียงขึ้นไป เพื่อป้องกันคนกดแกล้งเล่นๆ 1 ครั้ง)
+                if (reportScore > verifyScore + 1) {
+                    let netReport = reportScore - verifyScore;
+                    trustBadge = `<span class="bg-red-50 text-thai-red px-2 py-1 rounded-lg text-[10px] font-bold border border-red-200 flex items-center gap-1 w-full"><i data-lucide="shield-alert" class="w-3.5 h-3.5 shrink-0"></i> ⚠️ ระวัง: มีประวัติบวกราคา (กระแสติดลบ ${netReport} เสียง)</span>`;
+                } 
+                // ถ้าคะแนนดี ชนะ หรือเท่ากับ คะแนนแย่ (และมีคนเคยกดโหวตแล้ว)
+                else if (verifyScore > 0 && verifyScore >= reportScore) {
+                    let netVerify = verifyScore - reportScore;
+                    // ถ้าสูสีกันมาก (เหลือ 0) ให้โชว์เป็นคะแนนรวมของคนทำดี
+                    let showScore = netVerify > 0 ? netVerify : verifyScore; 
+                    trustBadge = `<span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg text-[10px] font-bold border border-emerald-200 flex items-center gap-1 w-full"><i data-lucide="thumbs-up" class="w-3.5 h-3.5 shrink-0"></i> 👍 ยืนยันแล้ว: ราคาเป็นธรรม (${showScore} เสียง)</span>`;
+                } 
+                // ถ้าร้านใหม่ซิงๆ ยังไม่มีใครโหวตอะไรเลย
+                else {
                     trustBadge = `<span class="bg-gray-50 text-gray-600 px-2 py-1 rounded-lg text-[10px] font-bold border border-gray-200 flex items-center gap-1 w-full"><i data-lucide="shield-check" class="w-3.5 h-3.5 shrink-0"></i> 🛡️ ร้านนี้ปกติ / ราคาเป็นธรรม</span>`;
                 }
 
@@ -680,7 +696,7 @@
                             <a href="${navUrl}" target="_blank" class="flex-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 py-2 rounded-xl text-xs font-bold transition flex justify-center items-center gap-1.5"><i data-lucide="navigation" class="w-3.5 h-3.5"></i> นำทาง</a>
                             <button onclick="updateShopStatus('${shop.id}', ${shop.lat}, ${shop.lng})" class="flex-1 bg-white text-thai-blue hover:bg-blue-50 border border-blue-200 py-2 rounded-xl text-xs font-bold transition flex justify-center items-center gap-1.5"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> สถานะ</button>
                             
-                            <!-- ปุ่มแจ้งธงแดง (ลบ Street View ออก แล้วสลับที่) -->
+                            <!-- ปุ่มแจ้งธงแดง -->
                             <button onclick="reportShop('${shop.id}', ${shop.lat}, ${shop.lng})" class="w-10 bg-red-50 text-thai-red hover:bg-red-100 border border-red-200 rounded-xl flex justify-center items-center transition" title="รายงาน: บวกราคาเพิ่ม/เอาเปรียบ"><i data-lucide="flag" class="w-4 h-4"></i></button>
                             
                             <!-- ปุ่มยืนยันร้านดี (Thumbs Up) -->
@@ -693,7 +709,7 @@
 
             const footer = document.createElement('div');
             footer.className = "mt-6 text-center pb-2";
-            footer.innerHTML = `<div class="inline-flex items-center justify-center gap-2 text-gray-500 text-[11px] font-medium bg-white px-4 py-2 rounded-full border shadow-sm"><i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i><span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span><span class="w-1 h-1 bg-gray-300 rounded-full"></span><span>v1.5.5</span></div>`;
+            footer.innerHTML = `<div class="inline-flex items-center justify-center gap-2 text-gray-500 text-[11px] font-medium bg-white px-4 py-2 rounded-full border shadow-sm"><i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i><span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span><span class="w-1 h-1 bg-gray-300 rounded-full"></span><span>v1.5.6</span></div>`;
             list.appendChild(footer);
             lucide.createIcons(); 
         }
