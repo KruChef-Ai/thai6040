@@ -54,7 +54,7 @@
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden">
 
-    <!-- Header (อัปเดต v1.5.6) -->
+    <!-- Header (อัปเดต v1.6) -->
     <header class="bg-thai-blue text-white pt-5 pb-4 px-4 shadow-lg shrink-0 relative overflow-hidden">
         <div class="absolute top-0 right-0 w-48 h-48 bg-white opacity-5 rounded-full -mr-10 -mt-10 blur-3xl pointer-events-none"></div>
         
@@ -70,7 +70,7 @@
                 <div>
                     <h1 class="text-lg font-bold leading-tight tracking-wide flex items-center gap-2">
                         ไทยช่วยไทย 60/40
-                        <span class="bg-thai-red text-white text-[9px] px-2 py-0.5 rounded-full font-medium tracking-wider shadow-sm">v1.5.6</span>
+                        <span class="bg-thai-red text-white text-[9px] px-2 py-0.5 rounded-full font-medium tracking-wider shadow-sm">v1.6</span>
                     </h1>
                     <p class="text-[11px] text-blue-200 mt-0.5 font-light tracking-wide">ตรวจสอบสิทธิ์ • ค้นหาร้านเปิดจริง</p>
                 </div>
@@ -162,7 +162,7 @@
                     <i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i>
                     <span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span>
                     <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
-                    <span>v1.5.6</span>
+                    <span>v1.6</span>
                 </div>
             </div>
         </div>
@@ -185,6 +185,11 @@
                     <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-emerald-500"></div> เปิด</span>
                     <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-red-500"></div> ปิด</span>
                 </div>
+            </div>
+            
+            <!-- ป้ายแจ้งเตือนรัศมี (New v1.6) -->
+            <div class="bg-blue-50 text-blue-700 text-[10px] font-bold py-1.5 px-3 rounded-lg border border-blue-200 flex justify-center items-center gap-1.5 shrink-0">
+                <i data-lucide="radar" class="w-3.5 h-3.5"></i> แสดงเฉพาะร้านค้าในรัศมี 15 กิโลเมตร
             </div>
 
             <!-- Shop List -->
@@ -306,6 +311,7 @@
             currentCalculatedUser: 0,
             merchants: [],
             history: [],
+            votedShops: {}, // v1.6: เก็บประวัติการโหวตในเครื่อง
             userLat: null,
             userLng: null
         };
@@ -319,10 +325,12 @@
             const today = new Date();
             document.getElementById('display-date').innerText = today.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
             loadWalletState();
+            
+            // v1.6: บังคับรอ GPS ก่อนถึงจะไปเรียก fetchMerchants (เพื่อกรองระยะทาง)
             getUserLocation((success) => {
                 if(success && map) updateUserMapLocation();
+                fetchMerchants(); // โหลดร้านเมื่อรู้พิกัดแล้ว
             }); 
-            fetchMerchants();
         });
 
         // ================= MAP LOGIC =================
@@ -395,12 +403,16 @@
                 const parsed = JSON.parse(saved);
                 state.monthlyBalance = parsed.monthlyBalance;
                 if (parsed.history) state.history = parsed.history;
+                if (parsed.votedShops) state.votedShops = parsed.votedShops; // v1.6 โหลดประวัติโหวต
+                
                 if (parsed.lastUsedDate !== todayStr) {
                     state.dailyBalance = Math.min(CONST_DAILY_MAX, state.monthlyBalance);
                 } else {
                     state.dailyBalance = parsed.dailyBalance;
                 }
                 state.lastUsedDate = todayStr;
+            } else {
+                state.votedShops = {};
             }
             updateWalletUI();
         }
@@ -410,7 +422,8 @@
                 dailyBalance: state.dailyBalance,
                 monthlyBalance: state.monthlyBalance,
                 lastUsedDate: state.lastUsedDate,
-                history: state.history
+                history: state.history,
+                votedShops: state.votedShops // v1.6 เซฟประวัติโหวต
             }));
         }
 
@@ -419,6 +432,7 @@
             state.monthlyBalance = CONST_MONTHLY_MAX;
             state.lastUsedDate = new Date().toDateString();
             state.history = [];
+            // สังเกต: เราจะไม่ล้าง state.votedShops นะครับ ไม่งั้นคนกดรีเซ็ตแล้วจะมาโหวตใหม่ได้
             saveWalletState();
             updateWalletUI();
             calculateSplit();
@@ -560,63 +574,42 @@
             return R * c; 
         }
 
+        // ================= v1.6: ดึงข้อมูลแบบส่งพิกัดไปให้ GAS กรอง =================
         function fetchMerchants() {
             const list = document.getElementById('shop-list');
             
             if (!GAS_URL || !GAS_URL.startsWith('http')) {
-                list.innerHTML = `
-                    <div class="text-center text-red-500 p-6 text-sm bg-red-50 rounded-xl mt-4 border border-red-200">
-                        <i data-lucide="alert-triangle" class="w-8 h-8 mx-auto mb-2 text-red-500"></i>
-                        <span class="font-bold">คุณยังไม่ได้ใส่ลิงก์ API</span><br>
-                        <span class="text-xs text-red-400 mt-1 block">กรุณาใส่ลิงก์ในไฟล์ index.html (บรรทัดที่ 352) ให้เรียบร้อยครับ</span>
-                    </div>
-                `;
-                lucide.createIcons();
+                list.innerHTML = `<div class="text-center text-red-500 py-6 text-sm bg-red-50 rounded-xl mt-4">ยังไม่ได้ใส่ลิงก์ API</div>`;
                 return;
             }
 
             list.innerHTML = `
                 <div class="text-center text-gray-400 py-10 flex flex-col items-center gap-3">
                     <i data-lucide="loader-2" class="w-8 h-8 animate-spin text-thai-blue"></i>
-                    <span class="text-sm font-medium text-thai-blue">กำลังดึงข้อมูลร้านค้า...</span>
+                    <span class="text-sm font-medium text-thai-blue">กำลังค้นหาร้านค้าใกล้คุณ...</span>
                 </div>
             `;
             lucide.createIcons();
 
-            fetch(GAS_URL + "?action=getMerchants")
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP Status: ${response.status}`);
-                    const contentType = response.headers.get("content-type");
-                    if (contentType && contentType.indexOf("application/json") !== -1) {
-                        return response.json();
-                    } else {
-                        throw new Error("เซิร์ฟเวอร์ไม่ได้ส่งข้อมูลแบบ JSON กลับมา (อาจติดหน้า Login หรือลิงก์ผิด)");
-                    }
-                })
+            // ส่งพิกัดพ่วงไปกับ URL เพื่อให้ GAS ช่วยคัดกรองระยะ 15km ให้
+            let fetchUrl = GAS_URL + "?action=getMerchants";
+            if (state.userLat && state.userLng) {
+                fetchUrl += `&lat=${state.userLat}&lng=${state.userLng}`;
+            }
+
+            fetch(fetchUrl)
+                .then(response => response.json())
                 .then(data => {
                     if(data.status === 'success') {
                         state.merchants = data.data;
                         renderMerchants();
                         updateMapMarkers(); 
                     } else {
-                        list.innerHTML = `<div class="text-center text-red-500 py-8 text-sm break-words bg-red-50 rounded-xl mt-4 border border-red-100">ข้อผิดพลาดจากฐานข้อมูล: ${data.message}</div>`;
+                        list.innerHTML = `<div class="text-center text-red-500 py-8 text-sm break-words bg-red-50 rounded-xl mt-4">ข้อผิดพลาด: ${data.message}</div>`;
                     }
                 })
                 .catch(err => {
-                    list.innerHTML = `
-                        <div class="text-center text-red-600 p-4 text-sm bg-red-50 rounded-xl mt-4 border border-red-200 flex flex-col gap-2">
-                            <i data-lucide="bug" class="w-8 h-8 mx-auto mb-1"></i>
-                            <span class="font-bold">เชื่อมต่อข้อมูลไม่สำเร็จ (โหมดดีบัก)</span>
-                            <div class="text-[10px] text-gray-600 break-all text-left bg-white p-3 rounded-lg border shadow-inner mt-2">
-                                <b class="text-thai-blue">1. ลิงก์ที่พยายามเข้าถึง:</b><br>
-                                <span class="text-red-500">${GAS_URL}</span><br><br>
-                                <b class="text-thai-blue">2. ข้อผิดพลาดที่เจอ:</b><br>
-                                <span class="text-red-500">${err.message || err.toString()}</span>
-                            </div>
-                            <span class="text-xs text-red-500 font-bold mt-2">รบกวนครูเชฟแคปจอช่องนี้ให้ผมดูหน่อยครับ!</span>
-                        </div>
-                    `;
-                    lucide.createIcons();
+                    list.innerHTML = `<div class="text-center text-red-600 p-4 text-sm bg-red-50 rounded-xl mt-4">เชื่อมต่อข้อมูลไม่สำเร็จ</div>`;
                 });
         }
 
@@ -625,7 +618,7 @@
             list.innerHTML = '';
 
             if (state.merchants.length === 0) {
-                list.innerHTML = '<div class="text-center text-gray-500 bg-white border border-gray-200 rounded-xl py-10 text-sm shadow-sm mt-4">ยังไม่มีข้อมูลร้านค้าในระบบ</div>';
+                list.innerHTML = '<div class="text-center text-gray-500 bg-white border border-gray-200 rounded-xl py-10 text-sm shadow-sm mt-4">ไม่พบข้อมูลร้านค้าในรัศมี 15 กม.</div>';
                 return;
             }
 
@@ -634,27 +627,19 @@
                     ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md text-[10px] font-bold border border-emerald-200">🟢 เปิดบริการ</span>' 
                     : '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-md text-[10px] font-bold border border-red-200">🔴 ปิดทำการ</span>';
                 
-                // ==========================================
-                // อัปเดต v1.5.6: ระบบคืนความยุติธรรม (Net Score)
-                // ==========================================
-                let reportScore = shop.reportCount || 0; // คะแนนแย่
-                let verifyScore = shop.verifyCount || 0; // คะแนนดี
-                
+                let reportScore = shop.reportCount || 0; 
+                let verifyScore = shop.verifyCount || 0; 
                 let trustBadge = '';
                 
-                // ถ้าคะแนนแย่ ชนะ คะแนนดี (เกิน 1 เสียงขึ้นไป เพื่อป้องกันคนกดแกล้งเล่นๆ 1 ครั้ง)
                 if (reportScore > verifyScore + 1) {
                     let netReport = reportScore - verifyScore;
                     trustBadge = `<span class="bg-red-50 text-thai-red px-2 py-1 rounded-lg text-[10px] font-bold border border-red-200 flex items-center gap-1 w-full"><i data-lucide="shield-alert" class="w-3.5 h-3.5 shrink-0"></i> ⚠️ ระวัง: มีประวัติบวกราคา (กระแสติดลบ ${netReport} เสียง)</span>`;
                 } 
-                // ถ้าคะแนนดี ชนะ หรือเท่ากับ คะแนนแย่ (และมีคนเคยกดโหวตแล้ว)
                 else if (verifyScore > 0 && verifyScore >= reportScore) {
                     let netVerify = verifyScore - reportScore;
-                    // ถ้าสูสีกันมาก (เหลือ 0) ให้โชว์เป็นคะแนนรวมของคนทำดี
                     let showScore = netVerify > 0 ? netVerify : verifyScore; 
                     trustBadge = `<span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg text-[10px] font-bold border border-emerald-200 flex items-center gap-1 w-full"><i data-lucide="thumbs-up" class="w-3.5 h-3.5 shrink-0"></i> 👍 ยืนยันแล้ว: ราคาเป็นธรรม (${showScore} เสียง)</span>`;
                 } 
-                // ถ้าร้านใหม่ซิงๆ ยังไม่มีใครโหวตอะไรเลย
                 else {
                     trustBadge = `<span class="bg-gray-50 text-gray-600 px-2 py-1 rounded-lg text-[10px] font-bold border border-gray-200 flex items-center gap-1 w-full"><i data-lucide="shield-check" class="w-3.5 h-3.5 shrink-0"></i> 🛡️ ร้านนี้ปกติ / ราคาเป็นธรรม</span>`;
                 }
@@ -696,11 +681,8 @@
                             <a href="${navUrl}" target="_blank" class="flex-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 py-2 rounded-xl text-xs font-bold transition flex justify-center items-center gap-1.5"><i data-lucide="navigation" class="w-3.5 h-3.5"></i> นำทาง</a>
                             <button onclick="updateShopStatus('${shop.id}', ${shop.lat}, ${shop.lng})" class="flex-1 bg-white text-thai-blue hover:bg-blue-50 border border-blue-200 py-2 rounded-xl text-xs font-bold transition flex justify-center items-center gap-1.5"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> สถานะ</button>
                             
-                            <!-- ปุ่มแจ้งธงแดง -->
-                            <button onclick="reportShop('${shop.id}', ${shop.lat}, ${shop.lng})" class="w-10 bg-red-50 text-thai-red hover:bg-red-100 border border-red-200 rounded-xl flex justify-center items-center transition" title="รายงาน: บวกราคาเพิ่ม/เอาเปรียบ"><i data-lucide="flag" class="w-4 h-4"></i></button>
-                            
-                            <!-- ปุ่มยืนยันร้านดี (Thumbs Up) -->
-                            <button onclick="verifyShop('${shop.id}', ${shop.lat}, ${shop.lng})" class="w-10 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 rounded-xl flex justify-center items-center transition" title="สนับสนุน: ร้านดี ราคาเป็นธรรม"><i data-lucide="thumbs-up" class="w-4 h-4"></i></button>
+                            <button onclick="reportShop('${shop.id}', ${shop.lat}, ${shop.lng})" class="w-10 bg-red-50 text-thai-red hover:bg-red-100 border border-red-200 rounded-xl flex justify-center items-center transition" title="รายงาน: บวกราคาเพิ่ม"><i data-lucide="flag" class="w-4 h-4"></i></button>
+                            <button onclick="verifyShop('${shop.id}', ${shop.lat}, ${shop.lng})" class="w-10 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 rounded-xl flex justify-center items-center transition" title="สนับสนุน: ร้านดี"><i data-lucide="thumbs-up" class="w-4 h-4"></i></button>
                         </div>
                     </div>
                 `;
@@ -709,14 +691,20 @@
 
             const footer = document.createElement('div');
             footer.className = "mt-6 text-center pb-2";
-            footer.innerHTML = `<div class="inline-flex items-center justify-center gap-2 text-gray-500 text-[11px] font-medium bg-white px-4 py-2 rounded-full border shadow-sm"><i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i><span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span><span class="w-1 h-1 bg-gray-300 rounded-full"></span><span>v1.5.6</span></div>`;
+            footer.innerHTML = `<div class="inline-flex items-center justify-center gap-2 text-gray-500 text-[11px] font-medium bg-white px-4 py-2 rounded-full border shadow-sm"><i data-lucide="code" class="w-3.5 h-3.5 text-thai-blue"></i><span>พัฒนาโดย: <strong class="text-thai-blue">ครูเชฟ (Kruchef-AI)</strong></span><span class="w-1 h-1 bg-gray-300 rounded-full"></span><span>v1.6</span></div>`;
             list.appendChild(footer);
             lucide.createIcons(); 
         }
 
-        // เพิ่มฟังก์ชัน ยืนยันร้านดี (Thumbs up)
+        // ================= v1.6: ฟังก์ชันการโหวตพร้อมระบบล็อค =================
         function verifyShop(shopId, shopLat, shopLng) {
-            if(!state.userLat) { showToast("กำลังดึงพิกัด GPS ของคุณ...", "error"); getUserLocation(); return; }
+            // เช็คว่าเคยโหวตร้านนี้แล้วหรือยัง
+            if(state.votedShops && state.votedShops[shopId]) {
+                showCustomAlert("ขอบคุณสำหรับความใส่ใจ!<br><span class='text-xs text-gray-500 mt-2 block'>แต่ระบบจำกัด 1 สิทธิ์โหวตต่อ 1 ร้านค้า (ในอุปกรณ์นี้) เพื่อป้องกันการปั่นคะแนนครับ</span>", false);
+                return;
+            }
+
+            if(!state.userLat) { showToast("กำลังดึงพิกัด GPS...", "error"); getUserLocation(); return; }
             const dist = calculateDistance(state.userLat, state.userLng, shopLat, shopLng);
             if (dist > VALID_RADIUS_METERS) {
                 showCustomAlert(`คุณอยู่ห่างจากร้าน <b class="text-thai-red">${dist.toFixed(0)} เมตร</b><br><span class="text-xs text-gray-500 mt-2 block">ต้องอยู่ในรัศมี ${VALID_RADIUS_METERS} เมตร เพื่อยืนยันข้อมูลร้านค้า (ป้องกันการแจ้งเท็จ)</span>`, true);
@@ -731,6 +719,11 @@
                 body: JSON.stringify({ action: 'verifyMerchant', data: { shopId: shopId, lat: state.userLat, lng: state.userLng } })
             }).then(r => r.json()).then(res => {
                 if(res.status === 'success') {
+                    // บันทึกการโหวตลงในเครื่องเพื่อล็อคไม่ให้กดซ้ำ
+                    if(!state.votedShops) state.votedShops = {};
+                    state.votedShops[shopId] = "VERIFIED";
+                    saveWalletState();
+
                     showCustomAlert("ส่งข้อมูลสำเร็จ!<br><span class='text-xs text-gray-500 mt-1 block'>ขอบคุณที่ช่วยสนับสนุนร้านค้าที่ดีครับ</span>");
                     fetchMerchants(); 
                 }
@@ -738,7 +731,13 @@
         }
 
         function reportShop(shopId, shopLat, shopLng) {
-            if(!state.userLat) { showToast("กำลังดึงพิกัด GPS ของคุณ...", "error"); getUserLocation(); return; }
+            // เช็คว่าเคยโหวตร้านนี้แล้วหรือยัง
+            if(state.votedShops && state.votedShops[shopId]) {
+                showCustomAlert("ขอบคุณสำหรับความใส่ใจ!<br><span class='text-xs text-gray-500 mt-2 block'>แต่ระบบจำกัด 1 สิทธิ์โหวตต่อ 1 ร้านค้า (ในอุปกรณ์นี้) เพื่อป้องกันการปั่นคะแนนครับ</span>", false);
+                return;
+            }
+
+            if(!state.userLat) { showToast("กำลังดึงพิกัด GPS...", "error"); getUserLocation(); return; }
             const dist = calculateDistance(state.userLat, state.userLng, shopLat, shopLng);
             if (dist > VALID_RADIUS_METERS) {
                 showCustomAlert(`คุณอยู่ห่างจากร้าน <b class="text-thai-red">${dist.toFixed(0)} เมตร</b><br><span class="text-xs text-gray-500 mt-2 block">ต้องอยู่ในรัศมี ${VALID_RADIUS_METERS} เมตร เพื่อส่งรายงานพฤติกรรมร้านค้า (ป้องกันการแจ้งเท็จ)</span>`, true);
@@ -753,6 +752,11 @@
                 body: JSON.stringify({ action: 'reportMerchant', data: { shopId: shopId, lat: state.userLat, lng: state.userLng } })
             }).then(r => r.json()).then(res => {
                 if(res.status === 'success') {
+                    // บันทึกการโหวตลงในเครื่องเพื่อล็อคไม่ให้กดซ้ำ
+                    if(!state.votedShops) state.votedShops = {};
+                    state.votedShops[shopId] = "REPORTED";
+                    saveWalletState();
+
                     showCustomAlert("ส่งรายงานสำเร็จ!<br><span class='text-xs text-gray-500 mt-1 block'>ระบบจะขึ้นป้ายเตือนสำหรับผู้ใช้รายต่อไปทันที ขอบคุณที่ช่วยสอดส่องดูแลคอมมูนิตี้ครับ</span>");
                     fetchMerchants(); 
                 }
@@ -841,7 +845,12 @@
             if(tabName === 'merchants') {
                 document.getElementById(`tab-${tabName}`).classList.remove('hidden');
                 document.getElementById(`tab-${tabName}`).classList.add('flex', 'fade-in');
-                fetchMerchants(); setTimeout(() => { initMap(); if(map) map.invalidateSize(); }, 150);
+                
+                // v1.6: ทุกครั้งที่เปิดแท็บนี้ จะบังคับดึงข้อมูลใหม่เพื่อเช็คพิกัดล่าสุดเสมอ
+                if(!state.userLat) getUserLocation((s) => { if(s) fetchMerchants(); });
+                else fetchMerchants();
+                
+                setTimeout(() => { initMap(); if(map) map.invalidateSize(); }, 150);
             } else {
                 document.getElementById(`tab-${tabName}`).classList.remove('hidden');
                 document.getElementById(`tab-${tabName}`).classList.add('fade-in');
